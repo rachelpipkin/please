@@ -1,0 +1,11 @@
+{
+  "name": "please",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "start": "node app"
+  },
+  "dependencies": {
+    "@slack/web-api": "^5.9.0"
+  }
+}
