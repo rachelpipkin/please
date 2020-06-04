@@ -6,6 +6,8 @@
     "start": "node app"
   },
   "dependencies": {
-    "@slack/web-api": "^5.9.0"
-  }
+    "@slack/web-api": "^5.9.0",
+    "express": "^4.17.1"
+  },
+  "main": "index.js"
 }

@@ -1,14 +1,18 @@
-const http = require("http");
-const hostname = "127.0.0.1";
+const express = require("express");
+const app = express();
 const port = 3000;
-const server = http.createServer((req, res) => {
-  res.statusCode = 200;
-  res.setHeader("Content-Type", "text/plain");
-  res.end("ok");
-});
 
-server.listen(port, hostname, () => {
-  console.log(`Server running at http://${hostname}:${port}/`);
+app.listen(port, () =>
+  console.log(`Please app listening at http://localhost:${port}`)
+);
+app.use(express.json());
+
+// routes
+app.post("/slack", function (req, res) {
+  // const data = res.json(req.body);
+  const data = req.body;
+  console.log(data);
+  res.send(data.challenge);
 });
 
 // bot token auth
