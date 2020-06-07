@@ -70,17 +70,20 @@ function routeErrorHandler(err, req, res, next) {
   res.send('error', { error: err });
 }
 
-function sendTaskToAssigned() {
-  (async () => {
-    const result = await web.conversations.open({
-      text: `Would you please: ${task.text}`,
-      users: task.assignedID,
-    });
+async function sendTaskToAssigned() {
+  const result = await web.chat.postMessage({
+    text: `Would you please: ${task.text}`,
+    channel: task.assignedID,
+  });
 
-    if (result.ok) {
-      console.log('task assigned');
-    } else {
-      console.log('there was an error', result.error);
-    }
-  })();
+  result.ok
+    ? messageRequester('Task assigned')
+    : messageRequester(`Uh oh! We got the following error: ${result.error}`);
+}
+
+function messageRequester(text) {
+  web.chat.postMessage({
+    text,
+    channel: task.requesterID,
+  });
 }
