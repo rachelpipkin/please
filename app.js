@@ -26,14 +26,20 @@ app.post('/slack-events', function (req, res) {
 
   if (data.event) {
     const event = data.event;
-    createRequest(event.text, event.user);
+
+    // ignore bot events
+    if (event.bot_id) return;
+
+    event.user === task.assignedID
+      ? respondToTask(event.text)
+      : createTask(event.text, event.user);
   }
 
   res.send(data.challenge);
 });
 
 // methods
-function createRequest(text, user) {
+function createTask(text, user) {
   task.assignedID = getUserID(text);
   task.requesterID = user;
 
@@ -65,6 +71,20 @@ function resetTask() {
   const task = Object.assign({}, emptyTask);
 }
 
+function respondToTask(text) {
+  if (text.toLowerCase().trim() === 'done') {
+    messageRequester(
+      `<@${task.assignedID}> has completed your request to ${task.text}`
+    );
+    resetTask();
+  } else {
+    web.chat.postMessage({
+      text: `Need to follow up with <@${task.requesterID}>?`,
+      channel: task.assignedID,
+    });
+  }
+}
+
 function routeErrorHandler(err, req, res, next) {
   res.status(500);
   res.send('error', { error: err });
@@ -72,12 +92,12 @@ function routeErrorHandler(err, req, res, next) {
 
 async function sendTaskToAssigned() {
   const result = await web.chat.postMessage({
-    text: `Would you please: ${task.text}`,
+    text: `<@${task.requesterID}> would like you to please ${task.text}\n\nRespond with 'done' when you're finished.`,
     channel: task.assignedID,
   });
 
   result.ok
-    ? messageRequester('Task assigned')
+    ? messageRequester(`Task assigned to <@${task.assignedID}>`)
     : messageRequester(`Uh oh! We got the following error: ${result.error}`);
 }
 
