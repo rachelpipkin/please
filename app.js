@@ -1,15 +1,15 @@
-const express = require("express");
+const express = require('express');
 const app = express();
 const port = 3000;
 
-const { WebClient } = require("@slack/web-api");
+const { WebClient } = require('@slack/web-api');
 const token = process.env.SLACK_TOKEN;
 const web = new WebClient(token);
 
 const emptyTask = {
-  assignedID: "",
-  requesterID: "",
-  text: "",
+  assignedID: '',
+  requesterID: '',
+  text: '',
 };
 const task = Object.assign({}, emptyTask);
 const userIDRegex = /<@U[0-9A-Z]*\>/;
@@ -21,7 +21,7 @@ app.use(express.json());
 app.use(routeErrorHandler);
 
 // routes
-app.post("/slack-events", function (req, res) {
+app.post('/slack-events', function (req, res) {
   const data = req.body;
 
   if (data.event) {
@@ -37,9 +37,9 @@ function createRequest(text, user) {
   task.assignedID = getUserID(text);
   task.requesterID = user;
 
-  if (task.assignedID == "") {
+  if (task.assignedID == '') {
     // TODO handle missing user on request
-    console.log("Request User to assign to here...");
+    console.log('Request User to assign to here...');
   } else {
     task.text = getTaskText(text);
     sendTaskToAssigned();
@@ -48,7 +48,7 @@ function createRequest(text, user) {
 
 function getTaskText(text) {
   const userIDRaw = text.match(userIDRegex);
-  const taskText = text.replace(userIDRaw, "");
+  const taskText = text.replace(userIDRaw, '');
 
   return taskText.trim();
 }
@@ -56,7 +56,7 @@ function getTaskText(text) {
 function getUserID(text) {
   const userIDRaw = text.match(userIDRegex);
 
-  if (!userIDRaw) return "";
+  if (!userIDRaw) return '';
 
   return userIDRaw[0].slice(2, -1);
 }
@@ -67,7 +67,7 @@ function resetTask() {
 
 function routeErrorHandler(err, req, res, next) {
   res.status(500);
-  res.send("error", { error: err });
+  res.send('error', { error: err });
 }
 
 function sendTaskToAssigned() {
@@ -78,9 +78,9 @@ function sendTaskToAssigned() {
     });
 
     if (result.ok) {
-      console.log("task assigned");
+      console.log('task assigned');
     } else {
-      console.log("there was an error", result.error);
+      console.log('there was an error', result.error);
     }
   })();
 }
