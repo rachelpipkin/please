@@ -1,6 +1,4 @@
-const { WebClient } = require('@slack/web-api');
-const token = process.env.SLACK_TOKEN;
-const web = new WebClient(token);
+const slack = require('./slack-web-api.js');
 
 const emptyTask = {
   assignedID: '',
@@ -10,34 +8,40 @@ const emptyTask = {
 let task = Object.assign({}, emptyTask);
 const userIDRegex = /<@U[0-9A-Z]*\>/;
 
-module.exports = function (event) {
+function handleTaskEvent(event) {
   event.user === task.assignedID
-    ? respondToTask(event.text)
-    : createTask(event.text, event.user);
-};
+    ? _respondToTask(event.text)
+    : _createTask(event.text, event.user);
+}
 
-function createTask(text, user) {
-  task.assignedID = task.assignedID ? task.assignedID : getUserID(text);
-  task.requesterID = user;
-  task.text = task.text ? task.text : getTaskText(text);
+function _createTask(text, requester) {
+  task.assignedID = task.assignedID ? task.assignedID : _getUserID(text);
+  task.requesterID = requester;
+  task.text = task.text ? task.text : _getTaskText(text);
 
   if (!task.assignedID) {
-    messageRequester('What user would you like to assign this to?');
+    slack.messageUser({
+      text: 'What user would you like to assign this to?',
+      channel: task.requesterID,
+    });
   } else if (!task.text) {
-    messageRequester(`What would you like <@${task.assignedID}> to do?`);
+    slack.messageUser({
+      text: `What would you like <@${task.assignedID}> to do?`,
+      channel: task.requesterID,
+    });
   } else {
-    sendTaskToAssigned();
+    _sendTaskToAssigned(task);
   }
 }
 
-function getTaskText(text) {
+function _getTaskText(text) {
   const userIDRaw = text.match(userIDRegex);
   const taskText = text.replace(userIDRaw, '');
 
   return taskText.trim();
 }
 
-function getUserID(text) {
+function _getUserID(text) {
   const userIDRaw = text.match(userIDRegex);
 
   if (!userIDRaw) return '';
@@ -45,47 +49,43 @@ function getUserID(text) {
   return userIDRaw[0].slice(2, -1);
 }
 
-function messageAssigned(text) {
-  return web.chat.postMessage({
-    text,
-    channel: task.assignedID,
-  });
-}
-
-function messageRequester(text) {
-  return web.chat.postMessage({
-    text,
-    channel: task.requesterID,
-  });
-}
-
-function resetTask() {
+function _resetTask() {
   task = Object.assign({}, emptyTask);
 }
 
-async function respondToTask(text) {
+async function _respondToTask(text) {
   if (text.toLowerCase().trim() === 'done') {
-    const result = await messageRequester(
-      `<@${task.assignedID}> has completed your request to ${task.text}`
-    );
+    const result = await slack.messageUser({
+      text: `<@${task.assignedID}> has completed your request to ${task.text}`,
+      channel: task.requesterID,
+    });
 
     if (result.ok) {
-      messageAssigned(`Great! I'll let <@${task.requesterID}> know.`);
-      resetTask();
-    } else {
-      messageAssigned(`Hmmm... I can't seem to reach <@${task.requesterID}>`);
+      slack.messageUser({
+        text: `Great! I'll let <@${task.requesterID}> know.`,
+        channel: task.assignedID,
+      });
+      _resetTask();
     }
   } else {
-    messageAssigned(`Need to follow up with <@${task.requesterID}>?`);
+    slack.messageUser({
+      text: `Need to follow up with <@${task.requesterID}>?`,
+      channel: task.assignedID,
+    });
   }
 }
 
-async function sendTaskToAssigned() {
-  const result = await messageAssigned(
-    `<@${task.requesterID}> would like you to please ${task.text}\n\nRespond with 'done' when you're finished.`
-  );
+async function _sendTaskToAssigned(task) {
+  const result = await slack.messageUser({
+    text: `<@${task.requesterID}> would like you to please ${task.text}\n\nRespond with 'done' when you're finished.`,
+    channel: task.assignedID,
+  });
 
-  result.ok
-    ? messageRequester(`Task assigned to <@${task.assignedID}>`)
-    : messageRequester(`Uh oh! We got the following error: ${result.error}`);
+  if (result.ok)
+    slack.messageUser({
+      text: `Task assigned to <@${task.assignedID}>`,
+      channel: task.requesterID,
+    });
 }
+
+exports.handleTaskEvent = handleTaskEvent;

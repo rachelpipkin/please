@@ -1,6 +1,7 @@
 const express = require('express');
 const app = express();
 const port = 3000;
+
 const task = require('./task.js');
 
 app.listen(port, () =>
@@ -19,7 +20,7 @@ app.post('/slack-events', function (req, res) {
     if (event.bot_id) return;
 
     //handle events
-    task(event);
+    task.handleTaskEvent(event);
   }
 
   res.send(data.challenge);
